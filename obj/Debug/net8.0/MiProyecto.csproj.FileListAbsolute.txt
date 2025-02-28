@@ -1,0 +1,14 @@
+D:\Projecto\MiProyecto\bin\Debug\net8.0\MiProyecto.exe
+D:\Projecto\MiProyecto\bin\Debug\net8.0\MiProyecto.deps.json
+D:\Projecto\MiProyecto\bin\Debug\net8.0\MiProyecto.runtimeconfig.json
+D:\Projecto\MiProyecto\bin\Debug\net8.0\MiProyecto.dll
+D:\Projecto\MiProyecto\bin\Debug\net8.0\MiProyecto.pdb
+D:\Projecto\MiProyecto\obj\Debug\net8.0\MiProyecto.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projecto\MiProyecto\obj\Debug\net8.0\MiProyecto.AssemblyInfoInputs.cache
+D:\Projecto\MiProyecto\obj\Debug\net8.0\MiProyecto.AssemblyInfo.cs
+D:\Projecto\MiProyecto\obj\Debug\net8.0\MiProyecto.csproj.CoreCompileInputs.cache
+D:\Projecto\MiProyecto\obj\Debug\net8.0\MiProyecto.dll
+D:\Projecto\MiProyecto\obj\Debug\net8.0\refint\MiProyecto.dll
+D:\Projecto\MiProyecto\obj\Debug\net8.0\MiProyecto.pdb
+D:\Projecto\MiProyecto\obj\Debug\net8.0\MiProyecto.genruntimeconfig.cache
+D:\Projecto\MiProyecto\obj\Debug\net8.0\ref\MiProyecto.dll
