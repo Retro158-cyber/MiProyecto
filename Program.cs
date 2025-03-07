@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 class Program
@@ -34,8 +34,7 @@ class Juego
         };
         fichas = new List<Ficha>();
         enJuego = true;
-        meta = (rand.Next(10), rand.Next(10)); 
-
+        meta = (rand.Next(10), rand.Next(10)); // Genera la posición aleatoria de la meta
     }
 
     public void SeleccionarFichas()
@@ -55,42 +54,65 @@ class Juego
             }
 
             Ficha fichaSeleccionada = todasLasFichas[eleccion - 1];
-            fichaSeleccionada.Posicion = (rand.Next(10), rand.Next(10)); 
+            
+            // Asignar una posición aleatoria válida que no sea un muro
+            (int nuevaX, int nuevaY) = ObtenerPosicionValida();
+            fichaSeleccionada.Posicion = (nuevaX, nuevaY);
+            
             fichas.Add(fichaSeleccionada);
             todasLasFichas.RemoveAt(eleccion - 1);
         }
     }
 
-    public void Iniciar()
+    // Método que obtiene una posición válida (no es un muro)
+    private (int, int) ObtenerPosicionValida()
     {
-        tablero.Generar(meta);
-        while (enJuego)
+        int x, y;
+        do
         {
-            tablero.Mostrar(fichas);
-            foreach (var ficha in fichas)
+            x = rand.Next(10); // Genera una coordenada aleatoria en el rango 0-9
+            y = rand.Next(10); // Genera una coordenada aleatoria en el rango 0-9
+        } while (tablero.EsMuro(x, y));  // Si es un muro, vuelve a generar otra posición
+
+        return (x, y);  // Devuelve la posición válida
+    }
+
+public void Iniciar()
+{
+    tablero.Generar(meta);
+    while (enJuego)
+    {
+        // Mostrar el tablero
+        tablero.Mostrar(fichas);
+        // Iterar sobre las fichas para permitir que se muevan
+        foreach (var ficha in fichas)
+        {
+            ficha.Mover(tablero); // Llamada para que la ficha se mueva
+
+            // Preguntar si quiere usar su habilidad
+            Console.WriteLine($"{ficha.Nombre}, ¿quieres usar tu habilidad? (S/N)");
+            char opcion = Console.ReadKey().KeyChar;
+            Console.WriteLine();
+            if (char.ToUpper(opcion) == 'S')
             {
-                ficha.Mover(tablero);
-
-                Console.WriteLine($"{ficha.Nombre}, ¿quieres usar tu habilidad? (S/N)");
-                char opcion = Console.ReadKey().KeyChar;
-                Console.WriteLine();
-                if (char.ToUpper(opcion) == 'S')
-                {
-                    ficha.UsarHabilidad(tablero);  
-                }
-
-                if (ficha.Posicion == meta)
-                {
-                    Console.WriteLine($"{ficha.Nombre} ha ganado al llegar a la meta!");
-                    enJuego = false;
-                    break;
-                }
+                ficha.UsarHabilidad(tablero);
             }
-            Console.WriteLine("Presiona ENTER para continuar...");
-            Console.ReadLine();
+
+            // Verificar si la ficha ha llegado a la meta
+            if (ficha.Posicion == meta)
+            {
+                Console.WriteLine($"{ficha.Nombre} ha ganado al llegar a la meta!");
+                enJuego = false;
+                break;
+            }
         }
+
+        // Esperar que el jugador presione ENTER para continuar al siguiente turno
+        Console.WriteLine("Presiona ENTER para continuar...");
+        Console.ReadLine();
     }
 }
+
 
 class Tablero
 {
@@ -356,7 +378,7 @@ class Ficha
 
     Console.WriteLine($"{Nombre} usa su habilidad: {Habilidad}");
 
-        if (Nombre.Contains("Enanito Verde"))
+        if (Nombre.Contains("Enanito"))
         {
           
             Console.WriteLine($"{Nombre}, elige una dirección para moverte (W = Arriba, S = Abajo, A = Izquierda, D = Derecha): ");
@@ -390,7 +412,7 @@ else
 
         }
 
-         if (Nombre.Contains("Minotauro Azul"))
+         if (Nombre.Contains("Minotauro"))
         {
             
             Console.WriteLine($"{Nombre}, elige una dirección para moverte (W = Arriba, S = Abajo, A = Izquierda, D = Derecha): ");
@@ -491,5 +513,5 @@ else
         Enfriamiento = 3;
         
           }
-
+}
 }
