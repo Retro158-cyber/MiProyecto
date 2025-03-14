@@ -37,45 +37,58 @@ class Juego
         meta = (rand.Next(10), rand.Next(10)); // Genera la posición aleatoria de la meta
     }
 
-    public void SeleccionarFichas()
+    public void SeleccionarFichas() 
+{
+    for (int i = 0; i < 2; i++)
     {
-        for (int i = 0; i < 2; i++)
+        Console.WriteLine($"Jugador {i + 1}, elige tu ficha:");
+        for (int j = 0; j < todasLasFichas.Count; j++)
         {
-            Console.WriteLine($"Jugador {i + 1}, elige tu ficha:");
-            for (int j = 0; j < todasLasFichas.Count; j++)
-            {
-                Console.WriteLine($"{j + 1}. {todasLasFichas[j].Nombre} - {todasLasFichas[j].Habilidad}");
-            }
-
-            int eleccion;
-            while (!int.TryParse(Console.ReadLine(), out eleccion) || eleccion < 1 || eleccion > todasLasFichas.Count)
-            {
-                Console.WriteLine("Selección inválida, intenta de nuevo.");
-            }
-
-            Ficha fichaSeleccionada = todasLasFichas[eleccion - 1];
-            
-            // Asignar una posición aleatoria válida que no sea un muro
-            (int nuevaX, int nuevaY) = ObtenerPosicionValida();
-            fichaSeleccionada.Posicion = (nuevaX, nuevaY);
-            
-            fichas.Add(fichaSeleccionada);
-            todasLasFichas.RemoveAt(eleccion - 1);
+            Console.WriteLine($"{j + 1}. {todasLasFichas[j].Nombre} - {todasLasFichas[j].Habilidad}");
         }
+
+        int eleccion;
+        while (!int.TryParse(Console.ReadLine(), out eleccion) || eleccion < 1 || eleccion > todasLasFichas.Count)
+        {
+            Console.WriteLine("Selección inválida, intenta de nuevo.");
+        }
+
+        Ficha fichaSeleccionada = todasLasFichas[eleccion - 1];
+        
+        // Asignar una posición aleatoria válida que no sea un muro
+        (int nuevaX, int nuevaY) = ObtenerPosicionValida(); // ObtenerPosicionValida() debe devolver una posición válida sin muros
+        fichaSeleccionada.Posicion = (nuevaX, nuevaY); // Guardamos la posición seleccionada
+        
+        fichas.Add(fichaSeleccionada); // Agregamos la ficha seleccionada a la lista de fichas
+        todasLasFichas.RemoveAt(eleccion - 1); // La removemos de la lista de todas las fichas disponibles
     }
+}
+
 
     // Método que obtiene una posición válida (no es un muro)
     private (int, int) ObtenerPosicionValida()
+{
+    int x, y;
+    do
     {
-        int x, y;
-        do
-        {
-            x = rand.Next(10); // Genera una coordenada aleatoria en el rango 0-9
-            y = rand.Next(10); // Genera una coordenada aleatoria en el rango 0-9
-        } while (tablero.EsMuro(x, y));  // Si es un muro, vuelve a generar otra posición
+        x = rand.Next(10); // Genera una coordenada aleatoria en el rango 0-9
+        y = rand.Next(10); // Genera una coordenada aleatoria en el rango 0-9
+    } while (tablero.EsMuro(x, y) || tablero.EsTrampa(x, y) || EstaOcupadaPorFicha(x, y));  // Si es un muro, trampa o ya está ocupada por una ficha, vuelve a generar otra posición
 
-        return (x, y);  // Devuelve la posición válida
+    return (x, y);  // Devuelve la posición válida
+}
+private bool EstaOcupadaPorFicha(int x, int y)
+{
+    foreach (var ficha in fichas)
+    {
+        if (ficha.Posicion.Item1 == x && ficha.Posicion.Item2 == y)
+        {
+            return true;  // La casilla está ocupada por una ficha
+        }
     }
+    return false;  // La casilla no está ocupada
+}
+
 
 public void Iniciar()
 {
@@ -116,8 +129,8 @@ public void Iniciar()
 
 class Tablero
 {
-    private int filas, columnas;
-    private char[,] casillas;
+    public int filas, columnas;
+    public char[,] casillas;
     private Random rand = new Random();
 
     public Tablero(int filas, int columnas)
@@ -137,8 +150,65 @@ class Tablero
     return 0; 
 }
 
+private bool HayCaminoDisponibleDesde(Ficha ficha, char[,] casillas, int filas, int columnas, (int, int) meta)
+{
+    // Extraemos la posición de la ficha
+    int startX = ficha.Posicion.Item1;
+    int startY = ficha.Posicion.Item2;
 
-    public void Generar((int, int) meta)
+    // Creamos una matriz de visita para no recorrer las mismas casillas
+    bool[,] visitado = new bool[filas, columnas];
+
+    // Usamos una cola para implementar una búsqueda por anchura (BFS)
+    Queue<(int, int)> cola = new Queue<(int, int)>();
+    
+    // Empezamos desde la posición inicial de la ficha
+    cola.Enqueue((startX, startY));
+    visitado[startX, startY] = true;
+
+    // Definimos los movimientos posibles (arriba, abajo, izquierda, derecha)
+    int[] dx = { 1, -1, 0, 0 };
+    int[] dy = { 0, 0, 1, -1 };
+
+    while (cola.Count > 0)
+    {
+        var (x, y) = cola.Dequeue();
+
+        // Si hemos llegado a la meta, retornamos true
+        if ((x, y) == meta)
+        {
+            return true;
+        }
+
+        // Comprobamos las 4 direcciones posibles
+        for (int d = 0; d < 4; d++)
+        {
+            int nx = x + dx[d];
+            int ny = y + dy[d];
+
+            // Verificamos que la nueva posición esté dentro de los límites del mapa
+            if (nx >= 0 && nx < filas && ny >= 0 && ny < columnas)
+            {
+                // Verificamos que la casilla no esté bloqueada (por muros o trampas)
+                if (!visitado[nx, ny] && casillas[nx, ny] != 'X' && casillas[nx, ny] != 'T')
+                {
+                    // Marcamos la casilla como visitada
+                    visitado[nx, ny] = true;
+                    // La añadimos a la cola para seguir explorando
+                    cola.Enqueue((nx, ny));
+                }
+            }
+        }
+    }
+
+    // Si hemos terminado el ciclo y no hemos encontrado la meta, retornamos false
+    return false;
+}
+
+
+   public void Generar((int, int) meta)
+{
+    do
 {
     for (int i = 0; i < filas; i++)
     {
@@ -147,24 +217,75 @@ class Tablero
             int chance = rand.Next(100);
             if ((i, j) == meta)
             {
-            casillas[i, j] = 'W';
+                casillas[i, j] = 'W'; // Meta
             }
-
             else if (chance < 10)
             {
-                casillas[i, j] = 'T'; 
+                casillas[i, j] = 'T'; // Trampa
             }
             else if (chance < 35)
             {
-                casillas[i, j] = 'X'; 
+                casillas[i, j] = 'X'; // Muro
             }
             else
             {
-                casillas[i, j] = '.';
+                casillas[i, j] = '.'; // Espacio libre
             }
         }
     }
+} while (!HayCaminoDisponible(meta));  //  Si no hay camino, se regenera el tablero
+ 
 }
+
+private bool HayCaminoDisponible((int, int) meta)
+{
+    bool[,] visitado = new bool[filas, columnas]; //  Asegura que cada verificación empieza sin casillas visitadas
+    Queue<(int, int)> cola = new Queue<(int, int)>();
+    
+    // Agregar todas las casillas vacías ('.') como posibles puntos de inicio
+    // Buscar la primera casilla vacía ('.') como punto de inicio
+bool puntoInicioEncontrado = false;
+for (int i = 0; i < filas && !puntoInicioEncontrado; i++)
+{
+    for (int j = 0; j < columnas && !puntoInicioEncontrado; j++)
+    {
+        if (casillas[i, j] == '.')
+        {
+            cola.Enqueue((i, j));  //  Se usa la primera casilla libre como punto de inicio
+            visitado[i, j] = true;
+            puntoInicioEncontrado = true;
+        }
+    }
+}
+
+if (!puntoInicioEncontrado) return false; //  Si no hay espacios vacíos, no hay camino
+
+
+    int[] dx = { 1, -1, 0, 0 };
+    int[] dy = { 0, 0, 1, -1 };
+
+    while (cola.Count > 0)
+    {
+        var (x, y) = cola.Dequeue();
+
+        if ((x, y) == meta) return true;
+
+        for (int d = 0; d < 4; d++)
+        {
+            int nx = x + dx[d];
+            int ny = y + dy[d];
+
+            if (nx >= 0 && nx < filas && ny >= 0 && ny < columnas && !visitado[nx, ny] && casillas[nx, ny] != 'X')
+            {
+                visitado[nx, ny] = true;
+                cola.Enqueue((nx, ny));
+            }
+        }
+    }
+
+    return false;
+}
+
 
 
     public void Mostrar(List<Ficha> fichas)
@@ -251,17 +372,6 @@ class Ficha
         Habilidad = habilidad;
         Enfriamiento = 0;
         PerdióTurno = false;
-
-        if (Nombre.Contains("Minotauro"))
-            ColorFicha = ConsoleColor.Blue;
-        else if (Nombre.Contains("Enanito"))
-            ColorFicha = ConsoleColor.Green;
-        else if (Nombre.Contains("Mago"))
-            ColorFicha = ConsoleColor.Magenta;
-        else if (Nombre.Contains("Demonio"))
-            ColorFicha = ConsoleColor.Red;
-        else if (Nombre.Contains("Fantasma"))
-            ColorFicha = ConsoleColor.White;
     }
 
     public void Mover(Tablero tablero)
@@ -336,18 +446,23 @@ class Ficha
         Console.WriteLine("Movimiento inválido.");
     }
  }
- private void Teletransportarse(Tablero tablero)
-    {
-        int nuevaX, nuevaY;
-        do
-        {
-            nuevaX = rand.Next(10);  
-            nuevaY = rand.Next(10);
-        } while (!tablero.EsPosicionValida(nuevaX, nuevaY) || (nuevaX == Posicion.Item1 && nuevaY == Posicion.Item2)); 
+private void Teletransportarse(Tablero tablero)
+{
+    Random rand = new Random();
+    int nuevaX, nuevaY;
 
-        Posicion = (nuevaX, nuevaY);
-        Console.WriteLine($"{Nombre} se teletransportó a la casilla ({nuevaX}, {nuevaY}).");
-    }
+    do
+    {
+        nuevaX = rand.Next(10); // Genera una fila aleatoria dentro del tablero (0-9)
+        nuevaY = rand.Next(10); // Genera una columna aleatoria dentro del tablero (0-9)
+    } while (tablero.EsMuro(nuevaX, nuevaY)); // Asegura que no caiga sobre un muro
+
+    // Actualizar la posición del Mago a la nueva ubicación
+    Posicion = (nuevaX, nuevaY);
+
+    Console.WriteLine($"{Nombre} se ha teletransportado a ({nuevaX}, {nuevaY})!");
+}
+
 
     private void Retroceder(Tablero tablero, (int, int) posicionAnterior)
  {
