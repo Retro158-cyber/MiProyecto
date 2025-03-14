@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-
 class Program
 {
     static void Main()
@@ -92,11 +89,13 @@ private bool EstaOcupadaPorFicha(int x, int y)
 
 public void Iniciar()
 {
-    tablero.Generar(meta);
+    tablero.Generar(fichas, meta); // Ahora pasamos fichas y meta correctamente
+
     while (enJuego)
     {
         // Mostrar el tablero
         tablero.Mostrar(fichas);
+
         // Iterar sobre las fichas para permitir que se muevan
         foreach (var ficha in fichas)
         {
@@ -127,6 +126,7 @@ public void Iniciar()
 }
 
 
+
 class Tablero
 {
     public int filas, columnas;
@@ -149,24 +149,55 @@ class Tablero
     }
     return 0; 
 }
-
-private bool HayCaminoDisponibleDesde(Ficha ficha, char[,] casillas, int filas, int columnas, (int, int) meta)
+  public void Generar(List<Ficha> fichas, (int, int) meta)
 {
-    // Extraemos la posición de la ficha
-    int startX = ficha.Posicion.Item1;
-    int startY = ficha.Posicion.Item2;
+    do
+    {
+        for (int i = 0; i < filas; i++)
+        {
+            for (int j = 0; j < columnas; j++)
+            {
+                int chance = rand.Next(100);
+                if ((i, j) == meta)
+                {
+                    casillas[i, j] = 'W'; // Meta
+                }
+                else if (chance < 10)
+                {
+                    casillas[i, j] = 'T'; // Trampa
+                }
+                else if (chance < 35)
+                {
+                    casillas[i, j] = 'X'; // Muro
+                }
+                else
+                {
+                    casillas[i, j] = '.'; // Espacio libre
+                }
+            }
+        }
+    } while (!TodosTienenCamino(fichas, meta)); // Si alguna ficha no tiene camino, se regenera
+}
+private bool TodosTienenCamino(List<Ficha> fichas, (int, int) meta)
+{
+    foreach (var ficha in fichas)
+    {
+        if (!HayCaminoDisponibleDesde(ficha.Posicion, meta))
+        {
+            return false; // Si alguna ficha no tiene camino, el tablero debe regenerarse
+        }
+    }
+    return true; // Todas las fichas pueden llegar a la meta
+}
 
-    // Creamos una matriz de visita para no recorrer las mismas casillas
+private bool HayCaminoDisponibleDesde((int, int) inicio, (int, int) meta)
+{
     bool[,] visitado = new bool[filas, columnas];
-
-    // Usamos una cola para implementar una búsqueda por anchura (BFS)
     Queue<(int, int)> cola = new Queue<(int, int)>();
-    
-    // Empezamos desde la posición inicial de la ficha
-    cola.Enqueue((startX, startY));
-    visitado[startX, startY] = true;
 
-    // Definimos los movimientos posibles (arriba, abajo, izquierda, derecha)
+    cola.Enqueue(inicio);
+    visitado[inicio.Item1, inicio.Item2] = true;
+
     int[] dx = { 1, -1, 0, 0 };
     int[] dy = { 0, 0, 1, -1 };
 
@@ -174,68 +205,24 @@ private bool HayCaminoDisponibleDesde(Ficha ficha, char[,] casillas, int filas, 
     {
         var (x, y) = cola.Dequeue();
 
-        // Si hemos llegado a la meta, retornamos true
-        if ((x, y) == meta)
-        {
-            return true;
-        }
+        if ((x, y) == meta) return true; // Si llega a la meta, hay camino
 
-        // Comprobamos las 4 direcciones posibles
         for (int d = 0; d < 4; d++)
         {
             int nx = x + dx[d];
             int ny = y + dy[d];
 
-            // Verificamos que la nueva posición esté dentro de los límites del mapa
-            if (nx >= 0 && nx < filas && ny >= 0 && ny < columnas)
+            if (nx >= 0 && nx < filas && ny >= 0 && ny < columnas &&
+                !visitado[nx, ny] && casillas[nx, ny] != 'X')
             {
-                // Verificamos que la casilla no esté bloqueada (por muros o trampas)
-                if (!visitado[nx, ny] && casillas[nx, ny] != 'X' && casillas[nx, ny] != 'T')
-                {
-                    // Marcamos la casilla como visitada
-                    visitado[nx, ny] = true;
-                    // La añadimos a la cola para seguir explorando
-                    cola.Enqueue((nx, ny));
-                }
+                visitado[nx, ny] = true;
+                cola.Enqueue((nx, ny));
             }
         }
     }
-
-    // Si hemos terminado el ciclo y no hemos encontrado la meta, retornamos false
-    return false;
+    return false; // Si sale del loop sin encontrar la meta, no hay camino
 }
 
-
-   public void Generar((int, int) meta)
-{
-    do
-{
-    for (int i = 0; i < filas; i++)
-    {
-        for (int j = 0; j < columnas; j++)
-        {
-            int chance = rand.Next(100);
-            if ((i, j) == meta)
-            {
-                casillas[i, j] = 'W'; // Meta
-            }
-            else if (chance < 10)
-            {
-                casillas[i, j] = 'T'; // Trampa
-            }
-            else if (chance < 35)
-            {
-                casillas[i, j] = 'X'; // Muro
-            }
-            else
-            {
-                casillas[i, j] = '.'; // Espacio libre
-            }
-        }
-    }
-} while (!HayCaminoDisponible(meta));  //  Si no hay camino, se regenera el tablero
- 
-}
 
 private bool HayCaminoDisponible((int, int) meta)
 {
@@ -362,7 +349,6 @@ class Ficha
     public char Inicial => Nombre[0];
     public int Enfriamiento { get; set; }
     public bool PerdióTurno { get; set; }
-    public ConsoleColor ColorFicha { get; set; }
     private Random rand = new Random();
 
     public Ficha(string nombre, int velocidad, string habilidad)
